@@ -1,12 +1,16 @@
-package sheriff
+package cluster
 
 import (
 	"fmt"
+	"io/ioutil"
+	"log"
+	"os"
 	"time"
 
-	"github.com/Sirupsen/logrus"
 	"github.com/google/uuid"
 	"github.com/hashicorp/memberlist"
+
+	kitlog "github.com/go-kit/kit/log"
 )
 
 type pingDelegate struct{ r *Registry }
@@ -36,11 +40,11 @@ type Member struct {
 	notifier Notifier
 
 	ProbeInterval time.Duration
+	logger        log.Logger
 }
 
 func NewMember(existing []string) (Member, error) {
-	log := logrus.New()
-	log.Formatter = new(logrus.JSONFormatter)
+	logger = kitlog.NewJSONLogger(kitlog.NewSyncWriter(os.Stderr))
 
 	registry := NewRegistry()
 	cfg := memberlist.DefaultLANConfig()
@@ -49,6 +53,9 @@ func NewMember(existing []string) (Member, error) {
 		cfg.Name = uuid.New().String()
 		cfg.Ping = pingDelegate{registry}
 		cfg.Events = eventDelegate{registry}
+		cfg.ProbeInterval = time.Second
+		cfg.Logger = log
+		cfg.LogOutput = ioutil.Discard
 	}
 
 	m, err := memberlist.Create(cfg)
@@ -64,11 +71,12 @@ func NewMember(existing []string) (Member, error) {
 	}
 
 	node := m.LocalNode()
-	log.WithFields(logrus.Fields{
-		"addr": node.Addr,
-		"port": node.Port,
-	}).Info("local node")
-
+	/*
+		log.WithFields(logrus.Fields{
+			"addr": node.Addr,
+			"port": node.Port,
+		}).Info("local node")
+	*/
 	return Member{
 		members:       m,
 		registry:      registry,

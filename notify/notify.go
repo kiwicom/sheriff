@@ -1,4 +1,4 @@
-package sheriff
+package notify
 
 import (
 	"net"

@@ -1,4 +1,4 @@
-package sheriff
+package cluster
 
 import (
 	"net"
